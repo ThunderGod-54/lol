@@ -14,7 +14,7 @@ const dashboardPageStyles = `
   --blue-primary: #2563eb;
   --blue-secondary: #60a5fa;
   --blue-light: #dbeafe;
-  --violet-primary: #8b5cf6;
+  --violet-primary:  #2563eb;
 }
 
 .dashboard-page {

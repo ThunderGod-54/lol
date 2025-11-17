@@ -17,7 +17,7 @@ const CourseContinued2 = () => {
       lessons: [
         {
           title: 'Introduction to DSA',
-          videoUrl: 'https://youtu.be/K5KVEU3aaeQ',
+          videoUrl: 'https://youtu.be/J0OvDNmAWNw',
           description: 'Understanding the importance of data structures and algorithms in programming.',
           code: `#include <stdio.h>
 int main() {
@@ -28,7 +28,7 @@ int main() {
         },
         {
           title: 'Arrays and Strings',
-          videoUrl: 'https://youtu.be/K5KVEU3aaeQ',
+          videoUrl: 'https://youtu.be/J0OvDNmAWNw',
           description: 'Learn about arrays, strings, and basic operations.',
           code: `#include <stdio.h>
 int main() {
@@ -40,7 +40,7 @@ int main() {
         },
         {
           title: 'Linked Lists',
-          videoUrl: 'https://youtu.be/K5KVEU3aaeQ',
+          videoUrl: 'https://youtu.be/J0OvDNmAWNw',
           description: 'Understanding linked lists and their operations.',
           code: `#include <stdio.h>
 #include <stdlib.h>
@@ -65,7 +65,7 @@ int main() {
       lessons: [
         {
           title: 'HTML Basics',
-          videoUrl: '',
+          videoUrl: 'https://youtu.be/zysUIv0-xak',
           description: 'Learn the fundamentals of HTML structure and elements.',
           code: `<!DOCTYPE html>
 <html>
@@ -81,7 +81,7 @@ int main() {
         },
         {
           title: 'CSS Styling',
-          videoUrl: '',
+          videoUrl: 'https://youtu.be/zysUIv0-xak',
           description: 'Introduction to CSS for styling web pages.',
           code: `body {
     font-family: Arial, sans-serif;
@@ -96,7 +96,7 @@ h1 {
         },
         {
           title: 'JavaScript Fundamentals',
-          videoUrl: '',
+          videoUrl: 'https://youtu.be/zysUIv0-xak',
           description: 'Basic JavaScript concepts and syntax.',
           code: `function greet(name) {
     console.log('Hello, ' + name + '!');
@@ -113,7 +113,7 @@ greet('World');`,
       lessons: [
         {
           title: 'Java Basics',
-          videoUrl: '',
+          videoUrl: 'https://youtu.be/eIrMbAQSU34',
           description: 'Introduction to Java programming language.',
           code: `public class HelloWorld {
     public static void main(String[] args) {
@@ -124,7 +124,7 @@ greet('World');`,
         },
         {
           title: 'Object-Oriented Programming',
-          videoUrl: '',
+          videoUrl: 'https://youtu.be/eIrMbAQSU34',
           description: 'Understanding classes, objects, and OOP concepts.',
           code: `public class Person {
     private String name;
@@ -143,7 +143,7 @@ greet('World');`,
         },
         {
           title: 'Exception Handling',
-          videoUrl: '',
+          videoUrl: 'https://youtu.be/eIrMbAQSU34',
           description: 'Learn how to handle exceptions in Java.',
           code: `public class ExceptionExample {
     public static void main(String[] args) {
@@ -164,7 +164,7 @@ greet('World');`,
       lessons: [
         {
           title: 'Python Basics',
-          videoUrl: '',
+          videoUrl: 'https://youtu.be/K5KVEU3aaeQ',
           description: 'Introduction to Python programming.',
           code: `print("Hello, Python!")
 
@@ -176,7 +176,7 @@ Welcome to Python 3.9`
         },
         {
           title: 'Control Structures',
-          videoUrl: '',
+          videoUrl: 'https://youtu.be/K5KVEU3aaeQ',
           description: 'Learn about loops and conditional statements.',
           code: `age = 18
 if age >= 18:
@@ -195,7 +195,7 @@ Count: 4`
         },
         {
           title: 'Functions and Modules',
-          videoUrl: '',
+          videoUrl: 'https://youtu.be/K5KVEU3aaeQ',
           description: 'Understanding functions and module imports.',
           code: `def greet(name):
     return f"Hello, {name}!"
@@ -367,14 +367,14 @@ print(f"5 + 3 = {result}")`,
                   onClick={downloadStaticPDF}
                   style={{ padding: '12px 24px', background: '#3b82f6', color: 'white', borderRadius: '8px' }}
                 >
-                  📘 Download Course PDF
+                  📘 Complete and Download Course PDF
                 </button>
 
-                /*<button
+                <button
                   onClick={generateCertificate}
                   style={{ padding: '12px 24px', background: '#10b981', color: 'white', borderRadius: '8px' }}
                 >
-                  Complete Course 
+                  ✅
                 </button>
 
               </div>
