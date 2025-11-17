@@ -4,6 +4,9 @@ import jwt
 import datetime
 import hashlib
 import os
+from fpdf import FPDF
+import qrcode
+from flask import send_file
 
 app = Flask(__name__)
 CORS(app)
@@ -258,6 +261,96 @@ def onboard_user():
         return jsonify({'error': 'Token expired'}), 401
     except jwt.InvalidTokenError:
         return jsonify({'error': 'Invalid token'}), 401
+
+
+CERT_FOLDER = "certificates"
+os.makedirs(CERT_FOLDER, exist_ok=True)
+
+@app.route('/api/certificate/generate', methods=['POST'])
+def generate_certificate():
+    token = request.headers.get('Authorization')
+
+    if not token:
+        return jsonify({'error': 'Token is required'}), 401
+
+    try:
+        # Strip Bearer
+        if token.startswith("Bearer "):
+            token = token[7:]
+
+        payload = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+        user_id = payload['user_id']
+
+        # Find user
+        user = None
+        for email, user_data in users.items():
+            if user_data["id"] == user_id:
+                user = user_data
+                break
+
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        data = request.get_json()
+        course_name = data.get("course_name", "Unknown Course")
+
+        # Certificate file path
+        filename = f"certificate_{user_id}_{course_name.replace(' ', '_')}.pdf"
+        filepath = os.path.join(CERT_FOLDER, filename)
+
+        # Generate QR
+        qr_text = f"Verified: {user['name']} completed {course_name}"
+        qr = qrcode.make(qr_text)
+        qr_path = os.path.join(CERT_FOLDER, f"qr_{user_id}.png")
+        qr.save(qr_path)
+
+        # Create Certificate
+        pdf = FPDF("L", "mm", "A4")
+        pdf.add_page()
+
+        pdf.set_font("Helvetica", "B", 28)
+        pdf.cell(0, 20, "Certificate of Completion", ln=True, align="C")
+
+        pdf.set_font("Helvetica", "", 16)
+        pdf.ln(10)
+        pdf.cell(0, 10, f"Presented to: {user['name']}", ln=True, align="C")
+
+        pdf.ln(5)
+        pdf.cell(0, 10, f"For successfully completing:", ln=True, align="C")
+
+        pdf.set_font("Helvetica", "B", 20)
+        pdf.cell(0, 12, course_name, ln=True, align="C")
+
+        pdf.ln(15)
+        pdf.image(qr_path, x=130, y=120, w=40)
+
+        pdf.set_font("Helvetica", "", 10)
+        pdf.set_y(200)
+        pdf.cell(0, 10, "This certificate is auto-generated and QR verified.", align="C")
+
+        pdf.output(filepath)
+
+        return jsonify({
+            "message": "Certificate generated successfully",
+            "download_url": f"/api/certificate/download/{filename}"
+        })
+
+    except jwt.ExpiredSignatureError:
+        return jsonify({'error': 'Token expired'}), 401
+    except jwt.InvalidTokenError:
+        return jsonify({'error': 'Invalid token'}), 401
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/certificate/download/<filename>', methods=['GET'])
+def download_certificate(filename):
+    filepath = os.path.join(CERT_FOLDER, filename)
+
+    if not os.path.exists(filepath):
+        return jsonify({'error': 'File not found'}), 404
+
+    return send_file(filepath, as_attachment=True)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

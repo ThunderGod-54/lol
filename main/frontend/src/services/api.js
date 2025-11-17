@@ -114,6 +114,14 @@ class ApiService {
       body: JSON.stringify(onboardData),
     });
   }
+  // Generate Certificate
+async generateCertificate(courseName) {
+  return await this.request('/certificate/generate', {
+    method: 'POST',
+    body: JSON.stringify({ course_name: courseName }),
+  });
+}
+
 }
 
 export default new ApiService();

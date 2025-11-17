@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import ApiService from '../services/api';
 
 const CourseContinued2 = () => {
   const navigate = useNavigate();
@@ -7,14 +8,16 @@ const CourseContinued2 = () => {
   const [selectedLesson, setSelectedLesson] = useState(0);
   const [output, setOutput] = useState('');
 
-  // Course data with lessons
+  // ---------------------------------------------
+  // COURSE DATA
+  // ---------------------------------------------
   const courseData = {
     1: {
       title: 'Data Structures & Algorithms',
       lessons: [
         {
           title: 'Introduction to DSA',
-          videoUrl: 'https://youtu.be/K5KVEU3aaeQ', // Placeholder for YouTube video
+          videoUrl: 'https://youtu.be/K5KVEU3aaeQ',
           description: 'Understanding the importance of data structures and algorithms in programming.',
           code: `#include <stdio.h>
 int main() {
@@ -49,7 +52,6 @@ struct Node {
 
 int main() {
     struct Node* head = NULL;
-    // Linked list implementation
     printf("Linked List Basics");
     return 0;
 }`,
@@ -57,6 +59,7 @@ int main() {
         }
       ]
     },
+
     2: {
       title: 'Web Development Fundamentals',
       lessons: [
@@ -104,6 +107,7 @@ greet('World');`,
         }
       ]
     },
+
     3: {
       title: 'Java Programming',
       lessons: [
@@ -154,6 +158,7 @@ greet('World');`,
         }
       ]
     },
+
     5: {
       title: 'Python Programming',
       lessons: [
@@ -163,7 +168,6 @@ greet('World');`,
           description: 'Introduction to Python programming.',
           code: `print("Hello, Python!")
 
-# Variables and data types
 name = "Python"
 version = 3.9
 print(f"Welcome to {name} {version}")`,
@@ -174,14 +178,12 @@ Welcome to Python 3.9`
           title: 'Control Structures',
           videoUrl: '',
           description: 'Learn about loops and conditional statements.',
-          code: `# If-else statement
-age = 18
+          code: `age = 18
 if age >= 18:
     print("You are an adult")
 else:
     print("You are a minor")
 
-# For loop
 for i in range(5):
     print(f"Count: {i}")`,
           expectedOutput: `You are an adult
@@ -214,27 +216,7 @@ print(f"5 + 3 = {result}")`,
   const course = courseData[courseId];
 
   if (!course) {
-    return (
-      <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-        <button
-          onClick={() => navigate('/courses')}
-          style={{
-            padding: '10px 20px',
-            borderRadius: '5px',
-            border: 'none',
-            background: '#4facfe',
-            color: 'white',
-            fontSize: '1rem',
-            cursor: 'pointer',
-            marginBottom: '20px'
-          }}
-        >
-          Back to Courses
-        </button>
-        <h1>Course Not Found</h1>
-        <p>The requested course could not be found.</p>
-      </div>
-    );
+    return <h1>Course Not Found</h1>;
   }
 
   const currentLesson = course.lessons[selectedLesson];
@@ -249,10 +231,37 @@ print(f"5 + 3 = {result}")`,
     return match ? `https://www.youtube.com/embed/${match[1]}` : null;
   };
 
+  // --------------------------------------------------------
+  // 🎓 Certificate Generator — HACKATHON FINAL VERSION
+  // --------------------------------------------------------
+  const generateCertificate = async () => {
+    try {
+      const res = await ApiService.generateCertificate(course.title);
+
+      if (res.download_url) {
+        const downloadUrl = "http://localhost:5000" + res.download_url;
+
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = `${course.title}_Certificate.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        alert("🎉 Certificate Generated Successfully!");
+      }
+    } catch (error) {
+      alert("❌ Failed to generate certificate");
+      console.error(error);
+    }
+  };
+
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', minHeight: '100vh', background: '#F0EDEE' }}>
+    <div style={{ padding: '20px', fontFamily: 'Arial', background: '#F0EDEE', minHeight: '100vh' }}>
+
+      {/* Back Button */}
       <button
-        onClick={() => navigate(`/courses-continued/${courseId}`)}
+        onClick={() => navigate(`/courses`)}
         style={{
           padding: '10px 20px',
           borderRadius: '5px',
@@ -264,189 +273,111 @@ print(f"5 + 3 = {result}")`,
           marginBottom: '20px'
         }}
       >
-        Back to Course Overview
+        Back to Courses
       </button>
 
-
-
-      <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '300px 1fr', gap: '20px' }}>
-        {/* Sidebar with lessons */}
-        <div style={{ background: 'white', padding: '20px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '20px', color: '#1e3a8a' }}>
-            {course.title}
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {course.lessons.map((lesson, index) => (
-              <button
-                key={index}
-                onClick={() => setSelectedLesson(index)}
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  border: selectedLesson === index ? '2px solid #4facfe' : '1px solid #d1d5db',
-                  background: selectedLesson === index ? '#e0f2fe' : 'white',
-                  color: selectedLesson === index ? '#4facfe' : '#374151',
-                  fontSize: '1rem',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {lesson.title}
-              </button>
-            ))}
-          </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '20px' }}>
+        
+        {/* SIDEBAR */}
+        <div style={{ background: 'white', padding: '20px', borderRadius: '16px' }}>
+          <h2>{course.title}</h2>
+          {course.lessons.map((lesson, index) => (
+            <button
+              key={index}
+              onClick={() => setSelectedLesson(index)}
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '12px',
+                margin: '5px 0',
+                background: selectedLesson === index ? '#e0f2fe' : 'white',
+                border: selectedLesson === index ? '2px solid #4facfe' : '1px solid #ccc',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              {lesson.title}
+            </button>
+          ))}
         </div>
 
-        {/* Main content */}
-        <div style={{ background: 'white', padding: '30px', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)' }}>
-          <h1 style={{ fontSize: '2rem', fontWeight: '700', marginBottom: '20px', color: '#1e3a8a' }}>
-            {currentLesson.title}
-          </h1>
+        {/* MAIN PANEL */}
+        <div style={{ background: 'white', padding: '30px', borderRadius: '16px' }}>
+          <h1>{currentLesson.title}</h1>
 
-          {/* Video section */}
+          {/* VIDEO */}
           {currentLesson.videoUrl ? (
-            <div style={{
-              width: '100%',
-              height: '400px',
-              borderRadius: '12px',
-              overflow: 'hidden',
-              marginBottom: '20px',
-              border: '2px solid #d1d5db'
-            }}>
-              <iframe
-                width="100%"
-                height="100%"
-                src={getYouTubeEmbedUrl(currentLesson.videoUrl)}
-                title="YouTube video player"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
-            </div>
+            <iframe
+              width="100%"
+              height="350"
+              src={getYouTubeEmbedUrl(currentLesson.videoUrl)}
+              allowFullScreen
+              style={{ borderRadius: '12px' }}
+            ></iframe>
           ) : (
-            <div style={{
-              width: '100%',
-              height: '400px',
-              background: '#f3f4f6',
-              borderRadius: '12px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '20px',
-              border: '2px dashed #d1d5db'
-            }}>
-              <div style={{ textAlign: 'center', color: '#6b7280' }}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polygon points="23 7 16 12 23 17 23 7"></polygon>
-                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-                </svg>
-                <p style={{ marginTop: '10px', fontSize: '1.1rem' }}>Video will be embedded here</p>
-              </div>
-            </div>
+            <div style={{ height: '350px', background: '#eee', borderRadius: '12px' }}></div>
           )}
 
-          {/* Description */}
-          <div style={{ marginBottom: '30px' }}>
-            <h3 style={{ fontSize: '1.3rem', fontWeight: '600', marginBottom: '10px', color: '#374151' }}>
-              Description
-            </h3>
-            <p style={{ fontSize: '1.1rem', color: '#6b7280', lineHeight: '1.6' }}>
-              {currentLesson.description}
-            </p>
-          </div>
+          <h3>Description</h3>
+          <p>{currentLesson.description}</p>
 
-          {/* Code section - only for programming courses */}
+          {/* Coding Section for Programming Courses */}
           {(courseId === '1' || courseId === '3' || courseId === '5') && (
-            <div style={{ marginBottom: '30px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <h3 style={{ fontSize: '1.3rem', fontWeight: '600', color: '#374151' }}>
-                  Code Example
-                </h3>
-                <button
-                  onClick={runCode}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '6px',
-                    border: 'none',
-                    background: '#10b981',
-                    color: 'white',
-                    fontSize: '0.9rem',
-                    cursor: 'pointer',
-                    fontWeight: '500'
-                  }}
-                >
-                  Run Code
-                </button>
-              </div>
-              <div style={{
-                background: '#1f2937',
-                borderRadius: '8px',
-                padding: '20px',
-                fontFamily: 'Monaco, Consolas, monospace',
-                fontSize: '0.9rem',
-                color: '#e5e7eb',
-                overflow: 'auto',
-                whiteSpace: 'pre-wrap',
-                textAlign: 'left'
-              }}>
+            <>
+              <h3>Code Example</h3>
+              <pre style={{ background: '#1f2937', color: 'white', padding: '15px', borderRadius: '8px' }}>
                 {currentLesson.code}
-              </div>
+              </pre>
+
+              <button
+                onClick={runCode}
+                style={{ padding: '10px 20px', background: '#10b981', color: 'white', borderRadius: '6px' }}
+              >
+                Run Code
+              </button>
+
               {output && (
-                <div style={{ marginTop: '15px' }}>
-                  <h4 style={{ fontSize: '1rem', fontWeight: '600', color: '#374151', marginBottom: '5px' }}>
-                    Output:
-                  </h4>
-                  <div style={{
-                    background: '#f8fafc',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    padding: '10px',
-                    fontFamily: 'Monaco, Consolas, monospace',
-                    fontSize: '0.9rem',
-                    color: '#1f2937',
-                    whiteSpace: 'pre-wrap'
-                  }}>
+                <div style={{ marginTop: '10px' }}>
+                  <h4>Output:</h4>
+                  <pre style={{ background: '#fafafa', padding: '10px', borderRadius: '6px' }}>
                     {output}
-                  </div>
+                  </pre>
                 </div>
               )}
-            </div>
+            </>
           )}
 
-          {/* Navigation buttons */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
+          {/* Navigation Buttons */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
             <button
               onClick={() => setSelectedLesson(Math.max(0, selectedLesson - 1))}
-              disabled={selectedLesson === 0}
-              style={{
-                padding: '10px 20px',
-                borderRadius: '8px',
-                border: 'none',
-                background: selectedLesson === 0 ? '#d1d5db' : '#4facfe',
-                color: 'white',
-                fontSize: '1rem',
-                cursor: selectedLesson === 0 ? 'not-allowed' : 'pointer'
-              }}
+              style={{ padding: '10px 20px', background: '#4facfe', color: 'white', borderRadius: '6px' }}
             >
               Previous
             </button>
+
+            {/* 🎓 FINAL LESSON → CERTIFICATE */}
+            {selectedLesson === course.lessons.length - 1 && (
+              <button
+                onClick={() => {
+                  if (window.confirm('🎉 Course finished! Generate your certificate now?')) {
+                    generateCertificate();
+                  }
+                }}
+                style={{ padding: '12px 24px', background: '#10b981', color: 'white', borderRadius: '8px' }}
+              >
+                Complete Course & Get Certificate
+              </button>
+            )}
+
             <button
               onClick={() => setSelectedLesson(Math.min(course.lessons.length - 1, selectedLesson + 1))}
-              disabled={selectedLesson === course.lessons.length - 1}
-              style={{
-                padding: '10px 20px',
-                borderRadius: '8px',
-                border: 'none',
-                background: selectedLesson === course.lessons.length - 1 ? '#d1d5db' : '#4facfe',
-                color: 'white',
-                fontSize: '1rem',
-                cursor: selectedLesson === course.lessons.length - 1 ? 'not-allowed' : 'pointer'
-              }}
+              style={{ padding: '10px 20px', background: '#4facfe', color: 'white', borderRadius: '6px' }}
             >
               Next
             </button>
           </div>
+
         </div>
       </div>
     </div>

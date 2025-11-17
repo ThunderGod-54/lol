@@ -179,57 +179,111 @@ export default function DistractionMonitor() {
     // ------------------------
     // Detection loop
     // ------------------------
-    async function predictWebcam() {
-        const video = videoRef.current;
-        const faceLandmarker = faceLandmarkerRef.current;
+    // EAR smoothing buffer
+let earHistory = [];
+const EAR_SMOOTHING = 5; // average of last 5 frames
 
-        if (!video || !faceLandmarker) {
-            requestAnimationFrame(predictWebcam);
-            return;
+async function predictWebcam() {
+    const video = videoRef.current;
+    const faceLandmarker = faceLandmarkerRef.current;
+
+    if (!video || !faceLandmarker) {
+        requestAnimationFrame(predictWebcam);
+        return;
+    }
+
+    if (video.currentTime === lastVideoTimeRef.current) {
+        requestAnimationFrame(predictWebcam);
+        return;
+    }
+    lastVideoTimeRef.current = video.currentTime;
+
+    let result;
+    try {
+        result = await faceLandmarker.detectForVideo(video, performance.now());
+    } catch (err) {
+        console.error("detectForVideo error:", err);
+        requestAnimationFrame(predictWebcam);
+        return;
+    }
+
+    const hasFace = result && result.faceLandmarks && result.faceLandmarks.length > 0;
+
+    // ---------- NO FACE ----------
+    if (!hasFace) {
+        noFaceFramesRef.current++;
+
+        if (statusRef.current) {
+            statusRef.current.innerText = "No Face Detected";
+            statusRef.current.className = "status warn";
         }
 
-        if (typeof video.currentTime === "number" && video.currentTime === lastVideoTimeRef.current) {
-            requestAnimationFrame(predictWebcam);
-            return;
-        }
-        lastVideoTimeRef.current = video.currentTime;
-
-        let result;
-        try {
-            result = await faceLandmarker.detectForVideo(video, performance.now());
-        } catch (err) {
-            console.error("detectForVideo error:", err);
-            requestAnimationFrame(predictWebcam);
-            return;
-        }
-
-        const hasLandmarks = result && result.faceLandmarks?.length > 0;
-
-        if (!hasLandmarks) {
-            noFaceFramesRef.current++;
-            if (statusRef.current) {
-                statusRef.current.innerText = "No Face Detected";
-                statusRef.current.className = "status warn";
-            }
-            if (noFaceFramesRef.current > NO_FACE_LIMIT) playBeep();
-
-            requestAnimationFrame(predictWebcam);
-            return;
-        }
-
-        noFaceFramesRef.current = 0;
+        if (noFaceFramesRef.current > NO_FACE_LIMIT) playBeep();
 
         requestAnimationFrame(predictWebcam);
+        return;
     }
+
+    noFaceFramesRef.current = 0;
+
+    // ---------- EAR CALCULATION ----------
+    const lm = result.faceLandmarks[0];
+
+    const leftEye = [
+        lm[33], lm[160], lm[158], lm[133], lm[153], lm[144]
+    ];
+    const rightEye = [
+        lm[263], lm[387], lm[385], lm[362], lm[380], lm[373]
+    ];
+
+    const leftEAR = getEAR(leftEye);
+    const rightEAR = getEAR(rightEye);
+    let avgEAR = (leftEAR + rightEAR) / 2;
+
+    // ---------- EAR SMOOTHING ----------
+    earHistory.push(avgEAR);
+    if (earHistory.length > EAR_SMOOTHING) {
+        earHistory.shift();
+    }
+    avgEAR = earHistory.reduce((a, b) => a + b, 0) / earHistory.length;
+
+    // ---------- CLOSED EYE SYSTEM WITH 2 SECOND THRESHOLD ----------
+    const CLOSED_FRAMES_2SECONDS = 60; // assuming 30 FPS
+
+    if (avgEAR < EAR_THRESHOLD) {
+        closedFramesRef.current++;
+
+        if (statusRef.current) {
+            statusRef.current.innerText = "Eyes Closed";
+            statusRef.current.className = "status warn";
+        }
+
+        // RING ONLY AFTER 2 SECONDS OF CONTINUOUS CLOSURE
+        if (closedFramesRef.current >= CLOSED_FRAMES_2SECONDS) {
+            playBeep();
+        }
+
+    } else {
+        // Eyes open: reset counter
+        closedFramesRef.current = 0;
+
+        if (statusRef.current) {
+            statusRef.current.innerText = "Focused";
+            statusRef.current.className = "status ok";
+        }
+    }
+
+    requestAnimationFrame(predictWebcam);
+}
+
+
 
     return (
         <div className="monitor-container">
             <div className="monitor-card">
 
                 {/* STATUS */}
-                <div ref={statusRef} className="status idle">
-                    Start focusing!
-                </div>
+
 
                 {/* CAMERA VIDEO */}
                 <video
@@ -261,7 +315,7 @@ export default function DistractionMonitor() {
                 {/* DURING FOCUS SESSION */}
                 {sessionStarted && (
                     <div className="session-controls">
-                        
+
                         {/* PAUSE BUTTON */}
                         <button
                             className="pause-btn"
