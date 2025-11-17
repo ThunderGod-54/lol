@@ -1,13 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 
 // ---
-// 🛑 IMPORTANT: API KEY & SECURITY
-// 1. Get a new, valid API key from Google AI Studio.
-// 2. Paste your new key below.
-// 3. DO NOT deploy this code to a public website with the key here.
-//    Your key WILL be stolen. Move this API call to a secure backend.
-// ---
-const GEMINI_API_KEY = "AIzaSyBo6LEvxRFkZgykGHx5AGKBHwf8kiXDzFw"; // 👈 PASTE YOUR NEW KEY HERE
+const GEMINI_API_KEY = "lol paste ur api here"; // 👈 PASTE YOUR NEW KEY HERE
 
 // 💡 FIX: Updated to the "2.5 model" as requested
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
