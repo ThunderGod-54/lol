@@ -7,6 +7,7 @@ export default function DistractionMonitor() {
 
     const faceLandmarkerRef = useRef(null);
     const audioContextRef = useRef(null);
+    const earHistoryRef = useRef([]); 
 
     const lastVideoTimeRef = useRef(-1);
     const closedFramesRef = useRef(0);
@@ -23,8 +24,9 @@ export default function DistractionMonitor() {
     const timerRef = useRef(null);
 
     const EAR_THRESHOLD = 0.32;
-    const CLOSED_FRAME_LIMIT = 8;
-    const NO_FACE_LIMIT = 40;
+    const CLOSED_FRAME_LIMIT = 8; 
+    const NO_FACE_LIMIT = 40; // You can remove this now if you want
+    const EAR_SMOOTHING = 5; 
 
     // Auto-start timer when session starts
     useEffect(() => {
@@ -82,6 +84,10 @@ export default function DistractionMonitor() {
         }
 
         audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+        
+        if (audioContextRef.current.state === "suspended") {
+             audioContextRef.current.resume();
+        }
 
         const vision = await window.FilesetResolver.forVisionTasks(
             "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
@@ -142,6 +148,7 @@ export default function DistractionMonitor() {
         lastVideoTimeRef.current = -1;
         closedFramesRef.current = 0;
         noFaceFramesRef.current = 0;
+        earHistoryRef.current = []; 
 
         if (statusRef.current) {
             statusRef.current.innerText = "Start focusing!";
@@ -151,7 +158,10 @@ export default function DistractionMonitor() {
 
     function playBeep() {
         const ctx = audioContextRef.current;
-        if (!ctx) return;
+        if (!ctx || ctx.state !== "running") { 
+            console.warn("AudioContext not running, cannot play beep.");
+            return;
+        }
 
         const osc = ctx.createOscillator();
         osc.frequency.value = 600;
@@ -179,102 +189,102 @@ export default function DistractionMonitor() {
     // ------------------------
     // Detection loop
     // ------------------------
-    // EAR smoothing buffer
-let earHistory = [];
-const EAR_SMOOTHING = 5; // average of last 5 frames
+    async function predictWebcam() {
+        const video = videoRef.current;
+        const faceLandmarker = faceLandmarkerRef.current;
 
-async function predictWebcam() {
-    const video = videoRef.current;
-    const faceLandmarker = faceLandmarkerRef.current;
-
-    if (!video || !faceLandmarker) {
-        requestAnimationFrame(predictWebcam);
-        return;
-    }
-
-    if (video.currentTime === lastVideoTimeRef.current) {
-        requestAnimationFrame(predictWebcam);
-        return;
-    }
-    lastVideoTimeRef.current = video.currentTime;
-
-    let result;
-    try {
-        result = await faceLandmarker.detectForVideo(video, performance.now());
-    } catch (err) {
-        console.error("detectForVideo error:", err);
-        requestAnimationFrame(predictWebcam);
-        return;
-    }
-
-    const hasFace = result && result.faceLandmarks && result.faceLandmarks.length > 0;
-
-    // ---------- NO FACE ----------
-    if (!hasFace) {
-        noFaceFramesRef.current++;
-
-        if (statusRef.current) {
-            statusRef.current.innerText = "No Face Detected";
-            statusRef.current.className = "status warn";
+        if (!video || !faceLandmarker) {
+            requestAnimationFrame(predictWebcam);
+            return;
+        }
+        
+        if (!videoRef.current.srcObject) {
+            return;
         }
 
-        if (noFaceFramesRef.current > NO_FACE_LIMIT) playBeep();
+        if (typeof video.currentTime === "number" && video.currentTime === lastVideoTimeRef.current) {
+            requestAnimationFrame(predictWebcam);
+            return;
+        }
+        lastVideoTimeRef.current = video.currentTime;
 
+        let result;
+        try {
+            result = await faceLandmarker.detectForVideo(video, performance.now());
+        } catch (err) {
+            console.error("detectForVideo error:", err);
+            requestAnimationFrame(predictWebcam);
+            return;
+        }
+
+        const hasLandmarks = result && result.faceLandmarks?.length > 0;
+
+        // ---------- NO FACE ----------
+        if (!hasLandmarks) {
+            noFaceFramesRef.current++; // Increment counter
+            
+            // 💡 --- FIX --- 💡
+            // Check if this is the FIRST frame with no face
+            if (noFaceFramesRef.current === 1) { 
+                playBeep(); // Play beep immediately
+            }
+            
+            if (statusRef.current) {
+                statusRef.current.innerText = "No Face Detected";
+                statusRef.current.className = "status warn";
+            }
+            
+            requestAnimationFrame(predictWebcam);
+            return;
+        }
+
+        // Face is found, so reset the no-face counter
+        noFaceFramesRef.current = 0; 
+
+        // ---------- EAR CALCULATION ----------
+        const lm = result.faceLandmarks[0];
+        const leftEye = [ lm[33], lm[160], lm[158], lm[133], lm[153], lm[144] ];
+        const rightEye = [ lm[263], lm[387], lm[385], lm[362], lm[380], lm[373] ];
+
+        const leftEAR = getEAR(leftEye);
+        const rightEAR = getEAR(rightEye);
+        let avgEAR = (leftEAR + rightEAR) / 2;
+
+        // ---------- EAR SMOOTHING ----------
+        const earHistory = earHistoryRef.current; 
+        earHistory.push(avgEAR);
+        if (earHistory.length > EAR_SMOOTHING) {
+            earHistory.shift();
+        }
+        avgEAR = earHistory.reduce((a, b) => a + b, 0) / earHistory.length;
+
+        // ---------- CLOSED EYE SYSTEM ----------
+        if (avgEAR < EAR_THRESHOLD) {
+            closedFramesRef.current++; // Increment counter
+
+            // 💡 --- FIX --- 💡
+            // Check if this is the FIRST frame with eyes closed
+            if (closedFramesRef.current === 1) {
+                 playBeep(); // Play beep immediately
+            }
+
+            if (statusRef.current) {
+                statusRef.current.innerText = "Eyes Closed";
+                statusRef.current.className = "status warn";
+            }
+
+        } else {
+            // Eyes open: reset counter
+            closedFramesRef.current = 0;
+
+            if (statusRef.current) {
+                statusRef.current.innerText = "Focused";
+                statusRef.current.className = "status ok";
+            }
+        }
+        
         requestAnimationFrame(predictWebcam);
-        return;
     }
-
-    noFaceFramesRef.current = 0;
-
-    // ---------- EAR CALCULATION ----------
-    const lm = result.faceLandmarks[0];
-
-    const leftEye = [
-        lm[33], lm[160], lm[158], lm[133], lm[153], lm[144]
-    ];
-    const rightEye = [
-        lm[263], lm[387], lm[385], lm[362], lm[380], lm[373]
-    ];
-
-    const leftEAR = getEAR(leftEye);
-    const rightEAR = getEAR(rightEye);
-    let avgEAR = (leftEAR + rightEAR) / 2;
-
-    // ---------- EAR SMOOTHING ----------
-    earHistory.push(avgEAR);
-    if (earHistory.length > EAR_SMOOTHING) {
-        earHistory.shift();
-    }
-    avgEAR = earHistory.reduce((a, b) => a + b, 0) / earHistory.length;
-
-    // ---------- CLOSED EYE SYSTEM WITH 2 SECOND THRESHOLD ----------
-    const CLOSED_FRAMES_2SECONDS = 60; // assuming 30 FPS
-
-    if (avgEAR < EAR_THRESHOLD) {
-        closedFramesRef.current++;
-
-        if (statusRef.current) {
-            statusRef.current.innerText = "Eyes Closed";
-            statusRef.current.className = "status warn";
-        }
-
-        // RING ONLY AFTER 2 SECONDS OF CONTINUOUS CLOSURE
-        if (closedFramesRef.current >= CLOSED_FRAMES_2SECONDS) {
-            playBeep();
-        }
-
-    } else {
-        // Eyes open: reset counter
-        closedFramesRef.current = 0;
-
-        if (statusRef.current) {
-            statusRef.current.innerText = "Focused";
-            statusRef.current.className = "status ok";
-        }
-    }
-
-    requestAnimationFrame(predictWebcam);
-}
 
 
 
@@ -317,7 +327,7 @@ async function predictWebcam() {
                 {/* DURING FOCUS SESSION */}
                 {sessionStarted && (
                     <div className="session-controls">
-
+                        
                         {/* PAUSE BUTTON */}
                         <button
                             className="pause-btn"
