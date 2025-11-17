@@ -283,7 +283,9 @@ async function predictWebcam() {
             <div className="monitor-card">
 
                 {/* STATUS */}
-
+                <div ref={statusRef} className="status idle">
+                    Start focusing!
+                </div>
 
                 {/* CAMERA VIDEO */}
                 <video

@@ -215,51 +215,60 @@ print(f"5 + 3 = {result}")`,
 
   const course = courseData[courseId];
 
-  if (!course) {
-    return <h1>Course Not Found</h1>;
-  }
+  if (!course) return <h1>Course Not Found</h1>;
 
   const currentLesson = course.lessons[selectedLesson];
 
-  const runCode = () => {
-    setOutput(currentLesson.expectedOutput);
-  };
+  const runCode = () => setOutput(currentLesson.expectedOutput);
 
   const getYouTubeEmbedUrl = (url) => {
     if (!url) return null;
-    const match = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+    const match = url.match(/(?:v=|youtu\.be\/)([^"&?\/\s]{11})/);
     return match ? `https://www.youtube.com/embed/${match[1]}` : null;
   };
 
+  // ------------------------------------------
+  // STATIC PDF DOWNLOAD (NO BACKEND NEEDED)
+  // ------------------------------------------
+  const downloadStaticPDF = () => {
+    let file = "";
+
+    if (course.title === "Java Programming") {
+      file = "/pdfs/java.pdf";
+    } else if (course.title === "Python Programming") {
+      file = "/pdfs/python.pdf";
+    } else {
+      alert("No PDF available for this course.");
+      return;
+    }
+
+    const a = document.createElement("a");
+    a.href = file;
+    a.download = file.split("/").pop();
+    a.click();
+  };
+
   // --------------------------------------------------------
-  // 🎓 Certificate Generator — HACKATHON FINAL VERSION
+  // OPTIONAL BACKEND CERTIFICATE (KEEPING YOUR OLD FEATURE)
   // --------------------------------------------------------
   const generateCertificate = async () => {
     try {
       const res = await ApiService.generateCertificate(course.title);
-
       if (res.download_url) {
-        const downloadUrl = "http://localhost:5000" + res.download_url;
-
         const a = document.createElement("a");
-        a.href = downloadUrl;
+        a.href = "http://localhost:5000" + res.download_url;
         a.download = `${course.title}_Certificate.pdf`;
-        document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
-
-        alert("🎉 Certificate Generated Successfully!");
+        alert("🎉 Certificate Generated!");
       }
-    } catch (error) {
+    } catch {
       alert("❌ Failed to generate certificate");
-      console.error(error);
     }
   };
 
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial', background: '#F0EDEE', minHeight: '100vh' }}>
 
-      {/* Back Button */}
       <button
         onClick={() => navigate(`/courses`)}
         style={{
@@ -268,8 +277,6 @@ print(f"5 + 3 = {result}")`,
           border: 'none',
           background: '#4facfe',
           color: 'white',
-          fontSize: '1rem',
-          cursor: 'pointer',
           marginBottom: '20px'
         }}
       >
@@ -293,7 +300,6 @@ print(f"5 + 3 = {result}")`,
                 background: selectedLesson === index ? '#e0f2fe' : 'white',
                 border: selectedLesson === index ? '2px solid #4facfe' : '1px solid #ccc',
                 borderRadius: '6px',
-                cursor: 'pointer'
               }}
             >
               {lesson.title}
@@ -305,7 +311,6 @@ print(f"5 + 3 = {result}")`,
         <div style={{ background: 'white', padding: '30px', borderRadius: '16px' }}>
           <h1>{currentLesson.title}</h1>
 
-          {/* VIDEO */}
           {currentLesson.videoUrl ? (
             <iframe
               width="100%"
@@ -321,7 +326,6 @@ print(f"5 + 3 = {result}")`,
           <h3>Description</h3>
           <p>{currentLesson.description}</p>
 
-          {/* Coding Section for Programming Courses */}
           {(courseId === '1' || courseId === '3' || courseId === '5') && (
             <>
               <h3>Code Example</h3>
@@ -347,7 +351,7 @@ print(f"5 + 3 = {result}")`,
             </>
           )}
 
-          {/* Navigation Buttons */}
+          {/* FINAL LESSON BUTTONS */}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px' }}>
             <button
               onClick={() => setSelectedLesson(Math.max(0, selectedLesson - 1))}
@@ -356,18 +360,24 @@ print(f"5 + 3 = {result}")`,
               Previous
             </button>
 
-            {/* 🎓 FINAL LESSON → CERTIFICATE */}
             {selectedLesson === course.lessons.length - 1 && (
-              <button
-                onClick={() => {
-                  if (window.confirm('🎉 Course finished! Generate your certificate now?')) {
-                    generateCertificate();
-                  }
-                }}
-                style={{ padding: '12px 24px', background: '#10b981', color: 'white', borderRadius: '8px' }}
-              >
-                Complete Course & Get Certificate
-              </button>
+              <div style={{ display: "flex", gap: "15px" }}>
+
+                <button
+                  onClick={downloadStaticPDF}
+                  style={{ padding: '12px 24px', background: '#3b82f6', color: 'white', borderRadius: '8px' }}
+                >
+                  📘 Download Course PDF
+                </button>
+
+                /*<button
+                  onClick={generateCertificate}
+                  style={{ padding: '12px 24px', background: '#10b981', color: 'white', borderRadius: '8px' }}
+                >
+                  Complete Course 
+                </button>
+
+              </div>
             )}
 
             <button
